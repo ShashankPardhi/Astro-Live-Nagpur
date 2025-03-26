@@ -1,0 +1,137 @@
+---
+import '../styles/shared.css';
+
+export async function getStaticPaths() {
+  const response = await fetch('https://thelivenagpur.com/wp-json/wp/v2/posts?_embed&per_page=100');
+  const posts = await response.json();
+
+  return posts.map((post) => {
+    const date = new Date(post.date);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    
+    return {
+      params: {
+        slug: `${year}/${month}/${day}/${post.slug}`
+      },
+      props: { post },
+    };
+  });
+}
+
+const { post } = Astro.props;
+const postDate = new Date(post.date);
+const featuredImage = post._embedded?.["wp:featuredmedia"]?.[0]?.source_url;
+---
+
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{post.title.rendered} - The Live Nagpur</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Source+Sans+Pro:wght@400;600&display=swap" rel="stylesheet">
+  </head>
+  <body>
+    <header class="header">
+      <div class="header-content">
+        <h1><a href="/" class="home-link">The Live Nagpur</a></h1>
+      </div>
+    </header>
+
+    <main class="main-content">
+      <article class="post">
+        <header class="post-header">
+          <h1 class="post-title" set:html={post.title.rendered} />
+          <time datetime={post.date} class="post-date">
+            {postDate.toLocaleDateString('en-US', {
+              weekday: 'long',
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric'
+            })}
+          </time>
+        </header>
+
+        {featuredImage && (
+          <div class="featured-image">
+            <img src={featuredImage} alt={post.title.rendered} />
+          </div>
+        )}
+
+        <div class="post-content" set:html={post.content.rendered} />
+      </article>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-content">
+        <h2>The Live Nagpur</h2>
+        <p>Your trusted source for Nagpur news</p>
+      </div>
+    </footer>
+  </body>
+</html>
+
+<style>
+  .post {
+    background: white;
+    border-radius: 12px;
+    padding: 2rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  .post-header {
+    margin-bottom: 2rem;
+    text-align: center;
+  }
+
+  .post-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 2.5rem;
+    margin: 0 0 1rem;
+    line-height: 1.2;
+  }
+
+  .post-date {
+    color: var(--text-secondary);
+    font-size: 1rem;
+  }
+
+  .featured-image {
+    margin: 2rem 0;
+  }
+
+  .featured-image img {
+    width: 100%;
+    height: auto;
+    border-radius: 12px;
+  }
+
+  .post-content {
+    font-size: 1.125rem;
+    line-height: 1.8;
+  }
+
+  .post-content :global(img) {
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+    margin: 2rem 0;
+  }
+
+  .post-content :global(p) {
+    margin: 1.5rem 0;
+  }
+
+  @media (max-width: 768px) {
+    .post {
+      padding: 1.5rem;
+    }
+
+    .post-title {
+      font-size: 2rem;
+    }
+  }
+</style> 

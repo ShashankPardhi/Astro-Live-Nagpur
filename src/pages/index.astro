@@ -1,11 +1,411 @@
 ---
-import Welcome from '../components/Welcome.astro';
-import Layout from '../layouts/Layout.astro';
+import SearchBar from '../components/SearchBar.astro';
+import PostsGrid from '../components/PostsGrid.astro';
+import '../styles/shared.css';
 
-// Welcome to Astro! Wondering what to do next? Check out the Astro documentation at https://docs.astro.build
-// Don't want to use any of this? Delete everything in this file, the `assets`, `components`, and `layouts` directories, and start fresh.
+// Get the current page from URL parameters, default to 1 if not specified
+const currentPage = parseInt(Astro.url.searchParams.get('page') || '1');
+const postsPerPage = 3; // Increased number of posts per page
+
+// Fetch total number of posts first
+const totalCountResponse = await fetch('https://thelivenagpur.com/wp-json/wp/v2/posts?per_page=1');
+const totalPosts = parseInt(totalCountResponse.headers.get('X-WP-Total') || '0');
+const totalPages = Math.ceil(totalPosts / postsPerPage);
+
+// Calculate the offset for the current page
+const offset = (currentPage - 1) * postsPerPage;
+
+// Fetch posts for current page with error handling
+let posts = [];
+try {
+  const response = await fetch(`https://thelivenagpur.com/wp-json/wp/v2/posts?_embed&per_page=${postsPerPage}&offset=${offset}`);
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+  posts = await response.json();
+} catch (error) {
+  console.error('Error fetching posts:', error);
+}
+
+// Function to format date for URL
+const getFormattedDate = (dateString: string) => {
+  const date = new Date(dateString);
+  return `/${date.getFullYear()}/${String(date.getMonth() + 1).padStart(2, '0')}/${String(date.getDate()).padStart(2, '0')}`;
+};
+
+// Function to generate pagination URL
+const getPaginationUrl = (pageNum: number) => {
+  const url = new URL(Astro.request.url);
+  if (pageNum === 1) {
+    url.searchParams.delete('page');
+  } else {
+    url.searchParams.set('page', pageNum.toString());
+  }
+  return url.search ? `${url.pathname}${url.search}` : url.pathname;
+};
+
+// Generate pagination range with ellipsis
+const getPaginationRange = () => {
+  const range = [];
+  const showEllipsis = totalPages > 7;
+  
+  if (!showEllipsis) {
+    // If total pages is 7 or less, show all pages
+    for (let i = 1; i <= totalPages; i++) {
+      range.push(i);
+    }
+  } else {
+    // Always show first page
+    range.push(1);
+    
+    if (currentPage > 3) {
+      range.push('...');
+    }
+    
+    // Show pages around current page
+    for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) {
+      range.push(i);
+    }
+    
+    if (currentPage < totalPages - 2) {
+      range.push('...');
+    }
+    
+    // Always show last page
+    if (totalPages > 1) {
+      range.push(totalPages);
+    }
+  }
+  
+  return range;
+};
 ---
 
-<Layout>
-	<Welcome />
-</Layout>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Live Nagpur - Latest News</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Source+Sans+Pro:wght@400;600&display=swap" rel="stylesheet">
+  </head>
+  <body>
+    <header class="header">
+      <div class="header-content">
+        <h1>The Live Nagpur</h1>
+        <p class="subtitle">Your trusted source for Nagpur news</p>
+      </div>
+    </header>
+
+    <main class="main-content">
+      <section class="search-section">
+        <SearchBar />
+      </section>
+
+      <section class="featured-posts">
+        <h2>Latest News</h2>
+        <PostsGrid posts={posts} />
+        
+        {totalPages > 1 && (
+          <nav class="pagination" aria-label="Pagination">
+            <div class="pagination-container">
+              <a 
+                href={currentPage > 1 ? getPaginationUrl(currentPage - 1) : '#'}
+                class="pagination-button prev" 
+                aria-label="Previous page"
+                aria-disabled={currentPage <= 1}
+                style={currentPage <= 1 ? "pointer-events: none; opacity: 0.5;" : ""}
+              >
+                Previous
+              </a>
+              
+              <div class="pagination-numbers">
+                {getPaginationRange().map((pageNum) => 
+                  pageNum === '...' ? (
+                    <span class="pagination-ellipsis">...</span>
+                  ) : (
+                    <a
+                      href={getPaginationUrl(pageNum)}
+                      class={`pagination-number${pageNum === currentPage ? ' active' : ''}`}
+                      aria-current={pageNum === currentPage ? 'page' : undefined}
+                      aria-label={`Page ${pageNum}`}
+                    >
+                      {pageNum}
+                    </a>
+                  )
+                )}
+              </div>
+              
+              <a 
+                href={currentPage < totalPages ? getPaginationUrl(currentPage + 1) : '#'}
+                class="pagination-button next" 
+                aria-label="Next page"
+                aria-disabled={currentPage >= totalPages}
+                style={currentPage >= totalPages ? "pointer-events: none; opacity: 0.5;" : ""}
+              >
+                Next
+              </a>
+            </div>
+          </nav>
+        )}
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-content">
+        <h2>The Live Nagpur</h2>
+        <p>Your trusted source for Nagpur news</p>
+      </div>
+    </footer>
+
+    <script define:vars={{ currentPage, postsPerPage, totalPages }}>
+      // Initialize state
+      let currentPageNum = parseInt(currentPage);
+      const postsPerPageNum = parseInt(postsPerPage);
+      const totalPagesNum = parseInt(totalPages);
+
+      function formatDate(dateString) {
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-US', {
+          weekday: 'long',
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        });
+      }
+
+      function getFormattedDate(dateString) {
+        const date = new Date(dateString);
+        return `/${date.getFullYear()}/${String(date.getMonth() + 1).padStart(2, '0')}/${String(date.getDate()).padStart(2, '0')}`;
+      }
+
+      function createPostHTML(post) {
+        const postDate = new Date(post.date);
+        const url = `${getFormattedDate(post.date)}/${post.slug}`;
+        const featuredImage = post._embedded?.["wp:featuredmedia"]?.[0]?.source_url;
+        
+        return `
+          <article class="post-card">
+            ${featuredImage ? `
+              <div class="post-image">
+                <img src="${featuredImage}" alt="${post.title.rendered}" loading="lazy" />
+              </div>
+            ` : ''}
+            <div class="post-content">
+              <time datetime="${post.date}" class="post-date">
+                ${formatDate(post.date)}
+              </time>
+              <h3 class="post-title">
+                <a href="${url}">${post.title.rendered}</a>
+              </h3>
+              <div class="post-excerpt">${post.excerpt.rendered}</div>
+              <a href="${url}" class="read-more">Read More →</a>
+            </div>
+          </article>
+        `;
+      }
+
+      async function fetchPosts(page) {
+        const offset = (page - 1) * postsPerPageNum;
+        try {
+          const response = await fetch(`https://thelivenagpur.com/wp-json/wp/v2/posts?_embed&per_page=${postsPerPageNum}&offset=${offset}`);
+          if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+          const posts = await response.json();
+          return posts;
+        } catch (error) {
+          console.error('Error fetching posts:', error);
+          return [];
+        }
+      }
+
+      function updateURL(page) {
+        const url = new URL(window.location.href);
+        if (page === 1) {
+          url.searchParams.delete('page');
+        } else {
+          url.searchParams.set('page', page.toString());
+        }
+        window.history.pushState({ page }, '', url.toString());
+      }
+
+      async function updatePage(newPage) {
+        if (newPage < 1 || newPage > totalPagesNum || newPage === currentPageNum) return;
+        
+        // Show loading state
+        const postsGrid = document.querySelector('.posts-grid');
+        if (postsGrid) {
+          postsGrid.innerHTML = '<div class="loading">Loading...</div>';
+        }
+        
+        // Update current page
+        currentPageNum = newPage;
+        
+        // Update URL
+        updateURL(newPage);
+
+        // Fetch and display new posts
+        const posts = await fetchPosts(newPage);
+        if (postsGrid && posts.length > 0) {
+          postsGrid.innerHTML = posts.map(createPostHTML).join('');
+        }
+
+        // Update pagination UI
+        updatePaginationUI(newPage);
+
+        // Scroll to top smoothly
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+
+      function updatePaginationUI(newPage) {
+        // Update Previous button
+        const prevButton = document.querySelector('.pagination-button.prev');
+        if (prevButton) {
+          const isDisabled = newPage <= 1;
+          prevButton.style.pointerEvents = isDisabled ? 'none' : 'auto';
+          prevButton.style.opacity = isDisabled ? '0.5' : '1';
+          prevButton.setAttribute('aria-disabled', isDisabled.toString());
+        }
+
+        // Update Next button
+        const nextButton = document.querySelector('.pagination-button.next');
+        if (nextButton) {
+          const isDisabled = newPage >= totalPagesNum;
+          nextButton.style.pointerEvents = isDisabled ? 'none' : 'auto';
+          nextButton.style.opacity = isDisabled ? '0.5' : '1';
+          nextButton.setAttribute('aria-disabled', isDisabled.toString());
+        }
+
+        // Update page numbers
+        document.querySelectorAll('.pagination-number').forEach(button => {
+          const pageNum = parseInt(button.textContent);
+          if (!isNaN(pageNum)) {
+            button.classList.toggle('active', pageNum === newPage);
+            button.setAttribute('aria-current', pageNum === newPage ? 'page' : 'false');
+          }
+        });
+      }
+
+      // Handle browser back/forward buttons
+      window.addEventListener('popstate', (event) => {
+        const page = event.state?.page || 1;
+        updatePage(page);
+      });
+
+      // Add event listeners when the DOM is loaded
+      document.addEventListener('DOMContentLoaded', () => {
+        // Set up pagination click handlers
+        document.querySelector('.pagination')?.addEventListener('click', (e) => {
+          e.preventDefault();
+          
+          const target = e.target;
+          
+          // Handle number clicks
+          if (target.classList.contains('pagination-number')) {
+            const pageNum = parseInt(target.textContent);
+            if (!isNaN(pageNum)) {
+              updatePage(pageNum);
+            }
+          }
+          
+          // Handle prev/next clicks
+          if (target.classList.contains('pagination-button')) {
+            if (target.classList.contains('prev') && currentPageNum > 1) {
+              updatePage(currentPageNum - 1);
+            } else if (target.classList.contains('next') && currentPageNum < totalPagesNum) {
+              updatePage(currentPageNum + 1);
+            }
+          }
+        });
+      });
+    </script>
+  </body>
+</html>
+
+<style>
+  .search-section {
+    margin-bottom: 2rem;
+  }
+
+  .featured-posts h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 2rem;
+    margin-bottom: 2rem;
+    text-align: center;
+  }
+
+  .pagination {
+    margin-top: 3rem;
+  }
+
+  .pagination-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .pagination-button {
+    padding: 0.5rem 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    text-decoration: none;
+    color: var(--text-primary);
+    background: white;
+    transition: all 0.2s ease;
+  }
+
+  .pagination-button:hover:not([aria-disabled="true"]) {
+    background: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+  }
+
+  .pagination-numbers {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+  }
+
+  .pagination-number {
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    text-decoration: none;
+    color: var(--text-primary);
+    background: white;
+    transition: all 0.2s ease;
+  }
+
+  .pagination-number:hover {
+    background: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+  }
+
+  .pagination-number.active {
+    background: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+  }
+
+  .pagination-ellipsis {
+    color: var(--text-secondary);
+  }
+
+  @media (max-width: 768px) {
+    .pagination-container {
+      flex-wrap: wrap;
+    }
+
+    .pagination-numbers {
+      order: 2;
+      width: 100%;
+      justify-content: center;
+    }
+
+    .pagination-button {
+      order: 1;
+    }
+  }
+</style>

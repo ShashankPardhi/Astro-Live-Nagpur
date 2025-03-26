@@ -1,0 +1,56 @@
+---
+interface Props {
+  posts: any[];
+}
+
+const { posts } = Astro.props;
+
+function formatDate(dateString: string) {
+  const date = new Date(dateString);
+  return date.toLocaleDateString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
+}
+
+function getFormattedDate(dateString: string) {
+  const date = new Date(dateString);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}/${month}/${day}`;
+}
+---
+
+<div class="posts-grid" id="posts-grid">
+  {posts.length > 0 ? (
+    posts.map((post) => {
+      const featuredImage = post._embedded?.["wp:featuredmedia"]?.[0]?.source_url;
+      const url = `/${getFormattedDate(post.date)}/${post.slug}`;
+      
+      return (
+        <article class="post-card">
+          {featuredImage && (
+            <div class="post-image">
+              <img src={featuredImage} alt={post.title.rendered} loading="lazy" />
+            </div>
+          )}
+          <div class="post-content">
+            <time datetime={post.date} class="post-date">
+              {formatDate(post.date)}
+            </time>
+            <h3 class="post-title">
+              <a href={url} set:html={post.title.rendered} />
+            </h3>
+            <div class="post-excerpt" set:html={post.excerpt.rendered} />
+            <a href={url} class="read-more">Read More →</a>
+          </div>
+        </article>
+      );
+    })
+  ) : (
+    <div class="loading">Loading posts...</div>
+  )}
+</div> 
