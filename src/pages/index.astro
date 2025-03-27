@@ -4,7 +4,8 @@ import PostsGrid from '../components/PostsGrid.astro';
 import '../styles/shared.css';
 
 // Get the current page from URL parameters, default to 1 if not specified
-const currentPage = parseInt(Astro.url.searchParams.get('page') || '1');
+const page = Astro.url.searchParams.get('page');
+const currentPage = page ? parseInt(page) : 1;
 const postsPerPage = 3; // Increased number of posts per page
 
 // Fetch total number of posts first
@@ -23,6 +24,7 @@ try {
     throw new Error(`HTTP error! status: ${response.status}`);
   }
   posts = await response.json();
+  console.log('Current page:', currentPage, 'Offset:', offset, 'Posts fetched:', posts.length);
 } catch (error) {
   console.error('Error fetching posts:', error);
 }
@@ -35,7 +37,7 @@ const getFormattedDate = (dateString: string) => {
 
 // Function to generate pagination URL
 const getPaginationUrl = (pageNum: number) => {
-  const url = new URL(Astro.request.url);
+  const url = new URL(Astro.url);
   if (pageNum === 1) {
     url.searchParams.delete('page');
   } else {
@@ -126,7 +128,7 @@ const getPaginationRange = () => {
                     <span class="pagination-ellipsis">...</span>
                   ) : (
                     <a
-                      href={getPaginationUrl(pageNum)}
+                      href={getPaginationUrl(typeof pageNum === 'number' ? pageNum : parseInt(pageNum.toString()))}
                       class={`pagination-number${pageNum === currentPage ? ' active' : ''}`}
                       aria-current={pageNum === currentPage ? 'page' : undefined}
                       aria-label={`Page ${pageNum}`}
@@ -164,6 +166,13 @@ const getPaginationRange = () => {
       let currentPageNum = parseInt(currentPage);
       const postsPerPageNum = parseInt(postsPerPage);
       const totalPagesNum = parseInt(totalPages);
+      
+      console.log('Client-side initialization:', { 
+        currentPageNum, 
+        postsPerPageNum, 
+        totalPagesNum,
+        url: window.location.href 
+      });
 
       function formatDate(dateString) {
         const date = new Date(dateString);
