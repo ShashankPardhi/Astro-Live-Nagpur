@@ -1,6 +1,9 @@
 ---
+import { formatDisplayDate, createPostURL } from '../utils/dateUtils';
+import type { WordPressPost } from '../types/wordpress';
+
 interface Props {
-  posts: any[];
+  posts: WordPressPost[];
 }
 
 const { posts } = Astro.props;
@@ -28,7 +31,7 @@ function getFormattedDate(dateString: string) {
   {posts.length > 0 ? (
     posts.map((post) => {
       const featuredImage = post._embedded?.["wp:featuredmedia"]?.[0]?.source_url;
-      const url = `/${getFormattedDate(post.date)}/${post.slug}`;
+      const url = createPostURL(post.date, post.slug);
       
       return (
         <article class="post-card">
@@ -39,7 +42,7 @@ function getFormattedDate(dateString: string) {
           )}
           <div class="post-content">
             <time datetime={post.date} class="post-date">
-              {formatDate(post.date)}
+              {formatDisplayDate(post.date)}
             </time>
             <h3 class="post-title">
               <a href={url} set:html={post.title.rendered} />

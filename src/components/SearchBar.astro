@@ -19,7 +19,7 @@ const { placeholder = "Search articles...", initialValue = "" } = Astro.props;
 </div>
 
 <script>
-  let debounceTimer: NodeJS.Timeout;
+  let debounceTimer: number;
   const searchInput = document.getElementById('search-input') as HTMLInputElement;
   const searchResults = document.getElementById('search-results');
 
@@ -72,82 +72,7 @@ const { placeholder = "Search articles...", initialValue = "" } = Astro.props;
     searchInput.addEventListener('input', (e) => {
       const target = e.target as HTMLInputElement;
       clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(() => performSearch(target.value), 300);
+      debounceTimer = setTimeout(() => performSearch(target.value), 300) as unknown as number;
     });
   }
-</script>
-
-<style>
-  .search-container {
-    position: relative;
-    max-width: 600px;
-    margin: 0 auto;
-  }
-
-  .search-input {
-    width: 100%;
-    padding: 12px 16px;
-    font-size: 16px;
-    border: 2px solid #e2e8f0;
-    border-radius: 8px;
-    outline: none;
-    transition: border-color 0.2s ease;
-  }
-
-  .search-input:focus {
-    border-color: #3b82f6;
-  }
-
-  .search-results {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    right: 0;
-    background: white;
-    border-radius: 8px;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    margin-top: 8px;
-    max-height: 400px;
-    overflow-y: auto;
-    z-index: 1000;
-  }
-
-  .search-result-item {
-    display: block;
-    padding: 12px 16px;
-    text-decoration: none;
-    color: inherit;
-    border-bottom: 1px solid #e2e8f0;
-    transition: background-color 0.2s ease;
-  }
-
-  .search-result-item:last-child {
-    border-bottom: none;
-  }
-
-  .search-result-item:hover {
-    background-color: #f8fafc;
-  }
-
-  .search-result-content h3 {
-    margin: 0 0 4px;
-    font-size: 16px;
-    color: #1a202c;
-  }
-
-  .search-result-date {
-    margin: 0;
-    font-size: 14px;
-    color: #64748b;
-  }
-
-  .no-results, .error {
-    padding: 16px;
-    text-align: center;
-    color: #64748b;
-  }
-
-  .error {
-    color: #ef4444;
-  }
-</style> 
+</script> 

@@ -1,0 +1,94 @@
+---
+interface Props {
+  title: string;
+  description?: string;
+  keywords?: string;
+  ogImage?: string;
+  ogType?: 'website' | 'article';
+  canonical?: string;
+  authorName?: string;
+  articlePublishDate?: string;
+  articleSection?: string;
+  jsonLd?: Record<string, any>;
+}
+
+const { 
+  title, 
+  description = "The Live Nagpur brings you the latest news, events, and updates from Nagpur and surrounding regions.",
+  keywords = "Nagpur news, The Live Nagpur, local news, latest news, Nagpur events",
+  ogImage,
+  ogType = "website",
+  canonical = Astro.url.href,
+  authorName = "The Live Nagpur",
+  articlePublishDate,
+  articleSection,
+  jsonLd
+} = Astro.props;
+---
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{title}</title>
+    
+    <!-- SEO Meta Tags -->
+    <meta name="description" content={description}>
+    <meta name="keywords" content={keywords}>
+    <meta name="author" content={authorName}>
+    
+    <!-- Open Graph Meta Tags for social sharing -->
+    <meta property="og:title" content={title}>
+    <meta property="og:description" content={description}>
+    <meta property="og:type" content={ogType}>
+    <meta property="og:url" content={canonical}>
+    {ogImage && <meta property="og:image" content={ogImage}>}
+    <meta property="og:site_name" content="The Live Nagpur">
+    
+    <!-- Twitter Card Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content={title}>
+    <meta name="twitter:description" content={description}>
+    {ogImage && <meta name="twitter:image" content={ogImage}>}
+    
+    <!-- Article specific meta data -->
+    {articlePublishDate && <meta property="article:published_time" content={articlePublishDate}>}
+    {articleSection && <meta property="article:section" content={articleSection}>}
+    
+    <!-- Canonical URL -->
+    <link rel="canonical" href={canonical}>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Source+Sans+Pro:wght@400;600&display=swap" rel="stylesheet">
+    
+    <!-- JSON-LD -->
+    {jsonLd && (
+      <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+    )}
+    
+    <!-- Additional head content -->
+    <slot name="head" />
+  </head>
+  <body>
+    <header class="header">
+      <div class="header-content">
+        <h1><a href="/" class="home-link">The Live Nagpur</a></h1>
+        <p class="subtitle">Your trusted source for Nagpur news</p>
+      </div>
+    </header>
+
+    <main class="main-content">
+      <slot />
+    </main>
+
+    <footer class="footer">
+      <div class="footer-content">
+        <h2>The Live Nagpur</h2>
+        <p>Your trusted source for Nagpur news</p>
+      </div>
+    </footer>
+  </body>
+</html> 
